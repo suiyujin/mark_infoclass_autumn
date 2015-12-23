@@ -21,6 +21,7 @@ class MarkEvaluation
 
     @students = []
     @evaluations = []
+    @incorrect_students = []
   end
 
   ### 情報をファイルから取得、採点
@@ -81,7 +82,8 @@ class MarkEvaluation
         (s.group == student.group) && s.attend
       end.shuffle
       from_students.delete(student)
-      # TODO: 間違えたファイルを提出している(評価は無いが出席はしている)学生に対応する
+      # 間違えたファイルを提出している(評価は無いが出席はしている)学生は含めない
+      from_students.delete_if { |from_student| @incorrect_students.include?(from_student) }
 
       # 評価を書き込む
       from_students.each.with_index do |from_student, i|
@@ -133,16 +135,18 @@ class MarkEvaluation
     @student_dirs.each do |student_dir|
       dir_student_num = student_dir.scan(/-(\d+)\z/).flatten.first
       xlsx_file = Roo::Excelx.new("#{student_dir}/#{FILE_PREFIX}#{dir_student_num}.xlsx")
-      # 正しいファイルを提出しているかチェック
-      # TODO: 正しいファイル(list.xlsx)と比較するように修正
-      unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(STUDENT_SHEET - 1).row(1)).none?
-        p "WARN: Incorrect file! - #{FILE_PREFIX}#{dir_student_num}.xlsx"
-        next
-      end
 
       from_student = @students.find { |student| student.number == dir_student_num }
       to_students = @students.select { |student| student.group == from_student.group }
       to_students.delete(from_student)
+
+      # 正しいファイルを提出しているかチェック
+      # TODO: 正しいファイル(list.xlsx)と比較するように修正
+      unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(STUDENT_SHEET - 1).row(1)).none?
+        @incorrect_students << from_student
+        p "WARN: Incorrect file! - #{FILE_PREFIX}#{dir_student_num}.xlsx"
+        next
+      end
 
       # ファイルから他のメンバーへの評価を取得
       to_students.each do |to_student|
