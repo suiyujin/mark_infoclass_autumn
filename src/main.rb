@@ -96,7 +96,7 @@ class Main
         end
       end
 
-      list_xlsx.write("#{@reports_dir.sub(/reports$/, "lists/#{student.number}#{student.name}.xlsx")}")
+      list_xlsx.write("#{@reports_dir.sub(/reports\z/, "lists/#{student.number}#{student.name}.xlsx")}")
 
       puts "Write #{student.number}#{student.name}.xlsx"
     end
@@ -108,7 +108,7 @@ class Main
     # 出席者を調べる
     attendances = @student_dirs.map { |student_dir| student_dir.sub(/\A#{@reports_dir}\/\d+-/, '') }
 
-    first_student_num = @student_dirs.first.scan(/\/(\d+)$/).flatten.first
+    first_student_num = @student_dirs.first.scan(/-(\d+)\z/).flatten.first
     xlsx_file = Roo::Excelx.new("#{@student_dirs.first}/#{FILE_PREFIX}#{first_student_num}.xlsx")
     xlsx_file.each_row_streaming(pad_cells: true, offset: (STUDENT_LIST_FIRST_ROW - 2)) do |row|
       @students << Student.new(
@@ -123,7 +123,7 @@ class Main
 
   def make_evaluations
     @student_dirs.each do |student_dir|
-      student_number = student_dir.scan(/\/(\d+)$/).flatten.first
+      dir_student_num = student_dir.scan(/-(\d+)\z/).flatten.first
       xlsx_file = Roo::Excelx.new("#{student_dir}/#{FILE_PREFIX}#{dir_student_num}.xlsx")
       # 正しいファイルを提出しているかチェック
       # TODO: 正しいファイル(list.xlsx)と比較するように修正
@@ -132,8 +132,7 @@ class Main
         next
       end
 
-      from_student = @students.find { |student|  student.number == student_number }
-
+      from_student = @students.find { |student| student.number == dir_student_num }
       to_students = @students.select { |student| student.group == from_student.group }
       to_students.delete(from_student)
 
@@ -147,7 +146,7 @@ class Main
                row[STUDENT_ID_COL - 1] == to_student.id &&
                row[STUDENT_NUMBER_COL - 1].to_s == to_student.number &&
                row[STUDENT_NAME_COL - 1] == to_student.name
-          raise "Error: Incorrect student!! (student: #{to_student.name})"
+          raise StandardError, "Incorrect student!! (student: #{to_student.name})"
         end
 
         evaluations = row[(STUDENT_EVALUATIONS_FIRST_COL - 1),(EVALUATIONS.size)]
