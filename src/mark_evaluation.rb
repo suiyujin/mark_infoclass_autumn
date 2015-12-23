@@ -89,7 +89,7 @@ class MarkEvaluation
       from_students.each.with_index do |from_student, i|
         row_index = LIST_FIRST_ROW - 1 + i
         # 1列目に学生番号(S1,S2...)を書き込む
-        list_xlsx[LIST_SHEET - 1][row_index][0].change_contents("S#{i}")
+        list_xlsx[LIST_SHEET - 1][row_index][0].change_contents("S#{i + 1}")
 
         # 評価を取得
         evaluation = @evaluations.find do |e|
