@@ -1,13 +1,15 @@
-require "#{File.expand_path(File.dirname(__FILE__))}/student.rb"
-require "#{File.expand_path(File.dirname(__FILE__))}/evaluation.rb"
+require "#{File.expand_path(File.dirname(__FILE__))}/constants"
+require "#{File.expand_path(File.dirname(__FILE__))}/student"
+require "#{File.expand_path(File.dirname(__FILE__))}/evaluation"
 require 'roo'
 require 'rubyXL'
 
 class Main
+  include Constants
 
   def initialize
-    @reports_dir = File.expand_path(File.dirname(__FILE__)).sub(/src/, 'reports')
-    @file_prefix = 'kadai07-'
+    @reports_dir = REPORTS_DIR.sub(/\/\z/, '')
+
     @student_dirs = Dir.glob("#{@reports_dir}/**")
     @student_dirs.delete("#{@reports_dir}/reportlist.xls")
     p "students: #{@student_dirs.size}"
@@ -29,19 +31,21 @@ class Main
 
   def write_evaluations_in_class
     # クラス全体のファイルを書き出す
-    evaluation_xlsx = RubyXL::Parser.parse(@reports_dir.sub(/reports$/, 'evaluation_default.xlsx'))
+    evaluation_xlsx = RubyXL::Parser.parse("#{@reports_dir}/#{EVALUATION_DEFAULT_FILE_NAME}")
 
     @students.each do |student|
-      row_num = evaluation_xlsx[0].to_a.index { |row| row[1].value == student.id }
-      col_num = 4
+      row_num = evaluation_xlsx[EVALUATION_SHEET - 1].to_a.index { |row| row[EVALUATION_ID_COL - 1].value == student.id }
+      col_num = EVALUATION_FIRST_ROW - 1
 
       @evaluations.select { |e| e.to_student == student }.each do |evaluation|
-        evaluation_xlsx[0][row_num][col_num].change_contents(evaluation.total)
+        unless evaluation.sougouten == '#DIV/0!'
+          # TODO: sougoutenと指定のものになってしまっているのを直す
+          evaluation_xlsx[EVALUATION_SHEET - 1][row_num][col_num].change_contents(evaluation.sougouten)
+        end
         col_num += 1
       end
 
-      col_num = 11
-      evaluation_xlsx[0][row_num][col_num].change_contents(student.score)
+      evaluation_xlsx[EVALUATION_SHEET - 1][row_num][EVALUATION_FOR_OTHER_ROW - 1].change_contents(student.score)
     end
 
     evaluation_xlsx.write(@reports_dir.sub(/reports$/, 'evaluation.xlsx'))
@@ -103,14 +107,14 @@ class Main
     attendances = Dir.entries(@reports_dir) - ['.', '..', 'reportlist.xls']
 
     first_student_num = @student_dirs.first.scan(/\/(\d+)$/).flatten.first
-    xlsx_file = Roo::Excelx.new("#{@student_dirs.first}/#{@file_prefix}#{first_student_num}.xlsx")
-    xlsx_file.each_row_streaming(pad_cells: true, offset: 12) do |row|
+    xlsx_file = Roo::Excelx.new("#{@student_dirs.first}/#{FILE_PREFIX}#{first_student_num}.xlsx")
+    xlsx_file.each_row_streaming(pad_cells: true, offset: (STUDENT_LIST_FIRST_ROW - 2)) do |row|
       @students << Student.new(
-        group: row[0].value,
-        id: row[1].value,
-        number: row[2].cell_value,
-        name: row[3].value,
-        attend: attendances.include?(row[2].cell_value)
+        group: row[STUDENT_GROUP_COL - 1].value,
+        id: row[STUDENT_ID_COL - 1].value,
+        number: row[STUDENT_NUMBER_COL - 1].cell_value,
+        name: row[STUDENT_NAME_COL - 1].value,
+        attend: attendances.include?(row[STUDENT_NUMBER_COL - 1].cell_value)
       )
     end
   end
@@ -118,10 +122,11 @@ class Main
   def make_evaluations
     @student_dirs.each do |student_dir|
       student_number = student_dir.scan(/\/(\d+)$/).flatten.first
-      xlsx_file = Roo::Excelx.new("#{student_dir}/#{@file_prefix}#{student_number}.xlsx")
+      xlsx_file = Roo::Excelx.new("#{student_dir}/#{FILE_PREFIX}#{dir_student_num}.xlsx")
       # 正しいファイルを提出しているかチェック
-      unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(0).row(1)).none?
-        p "WARN: Incorrect file! - #{@file_prefix}#{student_number}.xlsx"
+      # TODO: 正しいファイル(list.xlsx)と比較するように修正
+      unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(STUDENT_SHEET - 1).row(1)).none?
+        p "WARN: Incorrect file! - #{FILE_PREFIX}#{dir_student_num}.xlsx"
         next
       end
 
@@ -132,22 +137,22 @@ class Main
 
       # xlsx_fileから他のメンバーへの評価を取得
       to_students.each do |to_student|
-        row_num = xlsx_file.sheet(0).column(2).index(to_student.id) + 1
-        row = xlsx_file.sheet(0).row(row_num)
+        row_num = xlsx_file.sheet(STUDENT_SHEET - 1).column(STUDENT_ID_COL).index(to_student.id) + 1
+        row = xlsx_file.sheet(STUDENT_SHEET - 1).row(row_num)
 
         # 正しい学生への評価か調べる
-        unless row[0] == to_student.group &&
-               row[1] == to_student.id &&
-               row[2].to_s == to_student.number &&
-               row[3] == to_student.name
+        unless row[STUDENT_GROUP_COL - 1] == to_student.group &&
+               row[STUDENT_ID_COL - 1] == to_student.id &&
+               row[STUDENT_NUMBER_COL - 1].to_s == to_student.number &&
+               row[STUDENT_NAME_COL - 1] == to_student.name
           raise "Error: Incorrect student!! (student: #{to_student.name})"
         end
 
-        evaluations = row[5..-2]
+        evaluations = row[(STUDENT_EVALUATIONS_FIRST_COL - 1),(EVALUATIONS.size)]
         @evaluations << Evaluation.new(
-          *evaluations,
           from: from_student,
-          to: to_student
+          to: to_student,
+          evaluations: evaluations
         )
       end
     end

@@ -1,20 +1,21 @@
 class Evaluation
+  include Constants
 
-  attr_reader :from_student, :to_student, :naiyo, :shiryohyogen, :hanashikata,
-    :shinko, :doryokudo, :comment, :total
+  attr_reader :from_student, :to_student
 
-  def initialize(naiyo, shiryohyogen, hanashikata, shinko, doryokudo, comment, total, from:, to:)
+  def initialize(from:, to:, evaluations:)
     @from_student = from
     @to_student = to
 
-    @naiyo = naiyo
-    @shiryohyogen = shiryohyogen
-    @hanashikata = hanashikata
-    @shinko = shinko
-    @doryokudo = doryokudo
-    @comment = comment
-
-    @total = total
+    # configファイルの評価一覧からインスタンス変数とアクセサメソッドを作成
+    EVALUATIONS.each_with_index do |evaluation, i|
+      instance_variable_set("@#{evaluation}", evaluations[i])
+    end
+    class << self
+      EVALUATIONS.each do |evaluation|
+        define_method("#{evaluation}") { eval("@#{evaluation}") }
+      end
+    end
   end
 
   def to_student_attend?
@@ -38,6 +39,7 @@ class Evaluation
   end
 
   def make_array_evaluation
-    [@naiyo, @shiryohyogen, @hanashikata, @shinko, @doryokudo]
+    ary = EVALUATIONS.map { |evaluation| instance_variable_get("@#{evaluation}") }
+    ary[0, 5]
   end
 end
