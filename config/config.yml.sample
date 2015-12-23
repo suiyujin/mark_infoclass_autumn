@@ -2,24 +2,28 @@
 reports_dir: '/your/dir/of/reports/'
 # レポートの接頭辞
 file_prefix: 'kadai00-'
-# クラス全体の評価ファイルの元となるファイル名
-# reports_dirに置く
+# クラス全体の評価ファイルのテンプレートファイル名
 evaluation_default_file_name: 'evaluation_default.xlsx'
+# 個人への評価ファイルのテンプレートファイル名
+list_default_file_name: 'list_default.xlsx'
 # 数値関係
 number:
   # 学生の評価ファイル(read)
-  student_sheet: 1                  # 学生の評価ファイルのシート番号
-  student_list_first_row: 14        # 学生リストの1人目の学生の行番号
-  student_group_col: 1              # 学生の「グループ」の列番号(例: A => 1)
-  student_id_col: 2                 # 学生の「No.」の列番号
-  student_number_col: 3             # 学生の「学籍番号」の列番号
-  student_name_col: 4               # 学生の「氏名」の列番号
-  student_evaluations_first_col: 6  # 学生の1つ目の評価の列番号
+  student_sheet: 1                  # シート番号
+  student_list_first_row: 14        # 1人目の学生の行番号
+  student_group_col: 1              # 「グループ」の列番号(例: A => 1)
+  student_id_col: 2                 # 「No.」の列番号
+  student_number_col: 3             # 「学籍番号」の列番号
+  student_name_col: 4               # 「氏名」の列番号
+  student_evaluations_first_col: 6  # 1つ目の評価の列番号
   # クラス全体の評価ファイル(write)
-  evaluation_sheet: 1               # クラス全体の評価ファイルのシート番号
-  evaluation_id_col: 2              # クラス全体の評価ファイルの「No.」の列番号
-  evaluation_first_row: 5           # クラス全体の評価ファイルの1人目の評価(S1)の列番号
-  evaluation_for_other_row: 12      # クラス全体の評価ファイルの「他人へ採点」の列番号
+  evaluation_sheet: 1               # シート番号
+  evaluation_id_col: 2              # 「No.」の列番号
+  evaluation_first_col: 5           # 1人目の評価(S1)の列番号
+  evaluation_for_other_col: 12      # 「他人へ採点」の列番号
+  # 個人への評価ファイル(write)
+  list_sheet: 1                     # シート番号
+  list_first_row: 14                # 1人目の評価(S1)の行番号
 # 評価一覧
 evaluations:
   - 'naiyo'
