@@ -14,6 +14,8 @@ class Main
     @student_dirs = Dir.glob("#{@reports_dir}/**")
     @student_dirs.delete("#{@reports_dir}/reportlist.xls")
     @student_dirs.delete_if { |dir| dir =~ /evaluation_.+\.xlsx$/ }
+    @student_dirs.delete_if { |dir| dir =~ /list\.xlsx$/ }
+    @student_dirs.delete_if { |dir| dir =~ /lists$/ }
     p "#{@student_dirs.size} studens."
 
     @students = []
@@ -64,46 +66,33 @@ class Main
   ### 個人へのフィードバックファイルを書き出す
   def write_evaluations_for_student
     @students.each do |student|
-      # TODO: 新しいファイルを作るようにする
+      # テンプレートファイルを読み込む
+      list_xlsx = RubyXL::Parser.parse("#{@reports_dir}/#{LIST_DEFAULT_FILE_NAME}")
 
-      list_xlsx = RubyXL::Parser.parse(@reports_dir.sub(/reports\z/, 'list.xlsx'))
-      # # 左4列削除
-      # delete_column_size = 4
-      # delete_row_size = 55
-      # delete_row_size.times do |row_num|
-      #   delete_column_size.times do
-      #     list_xlsx[0].delete_cell(row_num, 0, :left)
-      #   end
-      # end
-      # # 列のサイズ調整
-      # (delete_column_size + 1).times do |col_num|
-      #   list_xlsx[0].change_column_width(col_num, 10.5)
-      # end
-      # list_xlsx[0].change_column_width(6, 30)
-
-      # グループの人からの評価を書き込む（順番をランダムにする）
       from_students = @students.select do |s|
         (s.group == student.group) && s.attend
       end.shuffle
       from_students.delete(student)
       # TODO: 間違えたファイルを提出している(評価は無いが出席はしている)学生に対応する
-      # 間違えたファイルを提出している人を削除
-      from_students.delete_if { |s| s.id == 34 }
 
-      # list_xlsx[0][12][0].change_contents('')
-      from_students.each.with_index(1) do |from_student, i|
-        row_num = 12 + i
-        list_xlsx[0][row_num][4].change_contents("S#{i}")
+      # 評価を書き込む
+      from_students.each.with_index do |from_student, i|
+        row_index = LIST_FIRST_ROW - 1 + i
+        # 1列目に学生番号(S1,S2...)を書き込む
+        list_xlsx[LIST_SHEET - 1][row_index][0].change_contents("S#{i}")
+
+        # 評価を取得
         evaluation = @evaluations.find do |e|
           (e.from_student == from_student) && (e.to_student == student)
         end
-        evaluation.make_array_evaluation_with_comment.each.with_index(5) do |value, col_num|
-          list_xlsx[0][row_num][col_num].change_contents(value)
+        # 2列目以降に評価を書き込む
+        evaluation.make_array_evaluation_with_comment.each.with_index(1) do |value, col_index|
+          list_xlsx[LIST_SHEET - 1][row_index][col_index].change_contents(value)
         end
       end
 
-      list_xlsx.write("#{@reports_dir.sub(/reports\z/, "lists/#{student.number}#{student.name}.xlsx")}")
-
+      # ファイルを保存
+      list_xlsx.write("#{@reports_dir}/lists/#{student.number}#{student.name}.xlsx")
       puts "Write #{student.number}#{student.name}.xlsx"
     end
   end
