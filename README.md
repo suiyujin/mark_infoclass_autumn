@@ -1,6 +1,7 @@
 ## Usage
 Install Ruby and bundler (e.g. gem install bundler)
-then, install dependencies libraries:
+
+Install dependent libraries:
 ```shell
 bundle install --path vendor/bundle
 `````
