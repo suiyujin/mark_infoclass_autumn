@@ -7,37 +7,42 @@ require 'rubyXL'
 class Main
   include Constants
 
+  ### 初期化
   def initialize
     @reports_dir = REPORTS_DIR.sub(/\/\z/, '')
 
     @student_dirs = Dir.glob("#{@reports_dir}/**")
     @student_dirs.delete("#{@reports_dir}/reportlist.xls")
     @student_dirs.delete_if { |dir| dir =~ /evaluation_.+\.xlsx$/ }
-    p "students: #{@student_dirs.size}"
+    p "#{@student_dirs.size} studens."
 
     @students = []
     @evaluations = []
   end
 
-  def check_evaluations
-    # StudentとEvaluationをファイルから生成
-    make_students
-    make_evaluations
+  ### 情報をファイルから取得、採点
+  def run
+    # StudentとEvaluationをファイルから取得
+    read_students
+    read_evaluations
 
     # 真面目に評価しているか調べて、採点する
     mark_students_evaluation
 
-    puts "Evaluation check has been completed."
+    puts "Evaluation has been checked."
   end
 
+  ### クラス全体の評価ファイルを書き出す
   def write_evaluations_in_class
-    # クラス全体のファイルを書き出す
+    # 書き込む対象のファイルを開く
     evaluation_xlsx = RubyXL::Parser.parse("#{@reports_dir}/#{EVALUATION_DEFAULT_FILE_NAME}")
 
     @students.each do |student|
+      # 書き込む場所を指定
       row_num = evaluation_xlsx[EVALUATION_SHEET - 1].to_a.index { |row| row[EVALUATION_ID_COL - 1].value == student.id }
       col_num = EVALUATION_FIRST_ROW - 1
 
+      # 同じグループの学生からの評価(総合点)を書き込む
       @evaluations.select { |e| e.to_student == student }.each do |evaluation|
         unless evaluation.sougouten == '#DIV/0!'
           # TODO: sougoutenと指定のものになってしまっているのを直す
@@ -46,21 +51,22 @@ class Main
         col_num += 1
       end
 
+      # 他の人への評価に対する採点を書き込む
       evaluation_xlsx[EVALUATION_SHEET - 1][row_num][EVALUATION_FOR_OTHER_ROW - 1].change_contents(student.score)
     end
 
+    # ファイルを保存する
     write_file_name = "evaluation_#{Time.now.strftime('%Y%m%d%H%M%S')}.xlsx"
     evaluation_xlsx.write("#{@reports_dir}/#{write_file_name}")
     puts "Write #{write_file_name}"
   end
 
+  ### 個人へのフィードバックファイルを書き出す
   def write_evaluations_for_student
-    # 個人のフィードバックファイルを書き出す
     @students.each do |student|
-      list_xlsx = RubyXL::Parser.parse(@reports_dir.sub(/reports$/, 'list.xlsx'))
-
       # TODO: 新しいファイルを作るようにする
 
+      list_xlsx = RubyXL::Parser.parse(@reports_dir.sub(/reports\z/, 'list.xlsx'))
       # # 左4列削除
       # delete_column_size = 4
       # delete_row_size = 55
@@ -104,12 +110,16 @@ class Main
 
   private
 
-  def make_students
-    # 出席者を調べる
+  ### 学生情報を取得
+  def read_students
+    # 出席者の学籍番号一覧をレポートのディレクトリから取得
     attendances = @student_dirs.map { |student_dir| student_dir.sub(/\A#{@reports_dir}\/\d+-/, '') }
 
+    # 一番目の学生のレポートファイルを使う
     first_student_num = @student_dirs.first.scan(/-(\d+)\z/).flatten.first
     xlsx_file = Roo::Excelx.new("#{@student_dirs.first}/#{FILE_PREFIX}#{first_student_num}.xlsx")
+
+    # 学生情報を取得してインスタンスを生成
     xlsx_file.each_row_streaming(pad_cells: true, offset: (STUDENT_LIST_FIRST_ROW - 2)) do |row|
       @students << Student.new(
         group: row[STUDENT_GROUP_COL - 1].value,
@@ -121,7 +131,8 @@ class Main
     end
   end
 
-  def make_evaluations
+  ### 評価情報を取得
+  def read_evaluations
     @student_dirs.each do |student_dir|
       dir_student_num = student_dir.scan(/-(\d+)\z/).flatten.first
       xlsx_file = Roo::Excelx.new("#{student_dir}/#{FILE_PREFIX}#{dir_student_num}.xlsx")
@@ -136,7 +147,7 @@ class Main
       to_students = @students.select { |student| student.group == from_student.group }
       to_students.delete(from_student)
 
-      # xlsx_fileから他のメンバーへの評価を取得
+      # ファイルから他のメンバーへの評価を取得
       to_students.each do |to_student|
         row_num = xlsx_file.sheet(STUDENT_SHEET - 1).column(STUDENT_ID_COL).index(to_student.id) + 1
         row = xlsx_file.sheet(STUDENT_SHEET - 1).row(row_num)
@@ -149,6 +160,7 @@ class Main
           raise StandardError, "Incorrect student!! (student: #{to_student.name})"
         end
 
+        # 評価インスタンスを生成
         evaluations = row[(STUDENT_EVALUATIONS_FIRST_COL - 1),(EVALUATIONS.size)]
         @evaluations << Evaluation.new(
           from: from_student,
@@ -159,12 +171,15 @@ class Main
     end
   end
 
+  ### 他の人への評価を採点する
+  ### 0〜3で採点
   def mark_students_evaluation
     @students.each do |student|
       evaluations = @evaluations.select do |evaluation|
         evaluation.from_student == student
       end
 
+      # 評価に応じて点数を付ける
       if evaluations.empty? ||
          evaluations.map(&:not_exist_all_evaluation?).all?
         # ファイルが提出されていない
@@ -180,11 +195,14 @@ class Main
         # (欠席者への評価は除く)
         student.score = 2
       else
+        # 上記以外
         student.score = 3
       end
     end
   end
 
+  ### 各学生への評価が数字の使い回しかどうか調べる
+  ### 使い回しの場合はtrueを返す
   def all_evaluations_equal?(es)
     es.map(&:make_array_evaluation).uniq.size == 1
   end
