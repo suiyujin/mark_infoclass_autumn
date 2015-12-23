@@ -1,5 +1,4 @@
 class Student
-
   attr_reader :group, :id, :number, :name, :attend
   attr_accessor :score
 

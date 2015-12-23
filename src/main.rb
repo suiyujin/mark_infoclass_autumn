@@ -1,60 +1,72 @@
-require "#{File.expand_path(File.dirname(__FILE__))}/student.rb"
-require "#{File.expand_path(File.dirname(__FILE__))}/evaluation.rb"
+require "#{File.expand_path(File.dirname(__FILE__))}/constants"
+require "#{File.expand_path(File.dirname(__FILE__))}/student"
+require "#{File.expand_path(File.dirname(__FILE__))}/evaluation"
 require 'roo'
 require 'rubyXL'
 
 class Main
+  include Constants
 
+  ### 初期化
   def initialize
-    @reports_dir = File.expand_path(File.dirname(__FILE__)).sub(/src/, 'reports')
-    @file_prefix = 'kadai07-'
+    @reports_dir = REPORTS_DIR.sub(/\/\z/, '')
+
     @student_dirs = Dir.glob("#{@reports_dir}/**")
     @student_dirs.delete("#{@reports_dir}/reportlist.xls")
-    p "students: #{@student_dirs.size}"
+    @student_dirs.delete_if { |dir| dir =~ /evaluation_.+\.xlsx$/ }
+    p "#{@student_dirs.size} studens."
 
     @students = []
     @evaluations = []
   end
 
-  def check_evaluations
-    # StudentとEvaluationをファイルから生成
-    make_students
-    make_evaluations
+  ### 情報をファイルから取得、採点
+  def run
+    # StudentとEvaluationをファイルから取得
+    read_students
+    read_evaluations
 
     # 真面目に評価しているか調べて、採点する
     mark_students_evaluation
 
-    puts "Evaluation check has been completed."
+    puts "Evaluation has been checked."
   end
 
+  ### クラス全体の評価ファイルを書き出す
   def write_evaluations_in_class
-    # クラス全体のファイルを書き出す
-    evaluation_xlsx = RubyXL::Parser.parse(@reports_dir.sub(/reports$/, 'evaluation_default.xlsx'))
+    # 書き込む対象のファイルを開く
+    evaluation_xlsx = RubyXL::Parser.parse("#{@reports_dir}/#{EVALUATION_DEFAULT_FILE_NAME}")
 
     @students.each do |student|
-      row_num = evaluation_xlsx[0].to_a.index { |row| row[1].value == student.id }
-      col_num = 4
+      # 書き込む場所を指定
+      row_num = evaluation_xlsx[EVALUATION_SHEET - 1].to_a.index { |row| row[EVALUATION_ID_COL - 1].value == student.id }
+      col_num = EVALUATION_FIRST_ROW - 1
 
+      # 同じグループの学生からの評価(総合点)を書き込む
       @evaluations.select { |e| e.to_student == student }.each do |evaluation|
-        evaluation_xlsx[0][row_num][col_num].change_contents(evaluation.total)
+        unless evaluation.sougouten == '#DIV/0!'
+          # TODO: sougoutenと指定のものになってしまっているのを直す
+          evaluation_xlsx[EVALUATION_SHEET - 1][row_num][col_num].change_contents(evaluation.sougouten)
+        end
         col_num += 1
       end
 
-      col_num = 11
-      evaluation_xlsx[0][row_num][col_num].change_contents(student.score)
+      # 他の人への評価に対する採点を書き込む
+      evaluation_xlsx[EVALUATION_SHEET - 1][row_num][EVALUATION_FOR_OTHER_ROW - 1].change_contents(student.score)
     end
 
-    evaluation_xlsx.write(@reports_dir.sub(/reports$/, 'evaluation.xlsx'))
-    puts "Write evaluation.xlsx"
+    # ファイルを保存する
+    write_file_name = "evaluation_#{Time.now.strftime('%Y%m%d%H%M%S')}.xlsx"
+    evaluation_xlsx.write("#{@reports_dir}/#{write_file_name}")
+    puts "Write #{write_file_name}"
   end
 
+  ### 個人へのフィードバックファイルを書き出す
   def write_evaluations_for_student
-    # 個人のフィードバックファイルを書き出す
     @students.each do |student|
-      list_xlsx = RubyXL::Parser.parse(@reports_dir.sub(/reports$/, 'list.xlsx'))
-
       # TODO: 新しいファイルを作るようにする
 
+      list_xlsx = RubyXL::Parser.parse(@reports_dir.sub(/reports\z/, 'list.xlsx'))
       # # 左4列削除
       # delete_column_size = 4
       # delete_row_size = 55
@@ -90,7 +102,7 @@ class Main
         end
       end
 
-      list_xlsx.write("#{@reports_dir.sub(/reports$/, "lists/#{student.number}#{student.name}.xlsx")}")
+      list_xlsx.write("#{@reports_dir.sub(/reports\z/, "lists/#{student.number}#{student.name}.xlsx")}")
 
       puts "Write #{student.number}#{student.name}.xlsx"
     end
@@ -98,67 +110,76 @@ class Main
 
   private
 
-  def make_students
-    # 出席者を調べる
-    attendances = Dir.entries(@reports_dir) - ['.', '..', 'reportlist.xls']
+  ### 学生情報を取得
+  def read_students
+    # 出席者の学籍番号一覧をレポートのディレクトリから取得
+    attendances = @student_dirs.map { |student_dir| student_dir.sub(/\A#{@reports_dir}\/\d+-/, '') }
 
-    first_student_num = @student_dirs.first.scan(/\/(\d+)$/).flatten.first
-    xlsx_file = Roo::Excelx.new("#{@student_dirs.first}/#{@file_prefix}#{first_student_num}.xlsx")
-    xlsx_file.each_row_streaming(pad_cells: true, offset: 12) do |row|
+    # 一番目の学生のレポートファイルを使う
+    first_student_num = @student_dirs.first.scan(/-(\d+)\z/).flatten.first
+    xlsx_file = Roo::Excelx.new("#{@student_dirs.first}/#{FILE_PREFIX}#{first_student_num}.xlsx")
+
+    # 学生情報を取得してインスタンスを生成
+    xlsx_file.each_row_streaming(pad_cells: true, offset: (STUDENT_LIST_FIRST_ROW - 2)) do |row|
       @students << Student.new(
-        group: row[0].value,
-        id: row[1].value,
-        number: row[2].cell_value,
-        name: row[3].value,
-        attend: attendances.include?(row[2].cell_value)
+        group: row[STUDENT_GROUP_COL - 1].value,
+        id: row[STUDENT_ID_COL - 1].value,
+        number: row[STUDENT_NUMBER_COL - 1].cell_value,
+        name: row[STUDENT_NAME_COL - 1].value,
+        attend: attendances.include?(row[STUDENT_NUMBER_COL - 1].cell_value)
       )
     end
   end
 
-  def make_evaluations
+  ### 評価情報を取得
+  def read_evaluations
     @student_dirs.each do |student_dir|
-      student_number = student_dir.scan(/\/(\d+)$/).flatten.first
-      xlsx_file = Roo::Excelx.new("#{student_dir}/#{@file_prefix}#{student_number}.xlsx")
+      dir_student_num = student_dir.scan(/-(\d+)\z/).flatten.first
+      xlsx_file = Roo::Excelx.new("#{student_dir}/#{FILE_PREFIX}#{dir_student_num}.xlsx")
       # 正しいファイルを提出しているかチェック
-      unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(0).row(1)).none?
-        p "WARN: Incorrect file! - #{@file_prefix}#{student_number}.xlsx"
+      # TODO: 正しいファイル(list.xlsx)と比較するように修正
+      unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(STUDENT_SHEET - 1).row(1)).none?
+        p "WARN: Incorrect file! - #{FILE_PREFIX}#{dir_student_num}.xlsx"
         next
       end
 
-      from_student = @students.find { |student|  student.number == student_number }
-
+      from_student = @students.find { |student| student.number == dir_student_num }
       to_students = @students.select { |student| student.group == from_student.group }
       to_students.delete(from_student)
 
-      # xlsx_fileから他のメンバーへの評価を取得
+      # ファイルから他のメンバーへの評価を取得
       to_students.each do |to_student|
-        row_num = xlsx_file.sheet(0).column(2).index(to_student.id) + 1
-        row = xlsx_file.sheet(0).row(row_num)
+        row_num = xlsx_file.sheet(STUDENT_SHEET - 1).column(STUDENT_ID_COL).index(to_student.id) + 1
+        row = xlsx_file.sheet(STUDENT_SHEET - 1).row(row_num)
 
         # 正しい学生への評価か調べる
-        unless row[0] == to_student.group &&
-               row[1] == to_student.id &&
-               row[2].to_s == to_student.number &&
-               row[3] == to_student.name
-          raise "Error: Incorrect student!! (student: #{to_student.name})"
+        unless row[STUDENT_GROUP_COL - 1] == to_student.group &&
+               row[STUDENT_ID_COL - 1] == to_student.id &&
+               row[STUDENT_NUMBER_COL - 1].to_s == to_student.number &&
+               row[STUDENT_NAME_COL - 1] == to_student.name
+          raise StandardError, "Incorrect student!! (student: #{to_student.name})"
         end
 
-        evaluations = row[5..-2]
+        # 評価インスタンスを生成
+        evaluations = row[(STUDENT_EVALUATIONS_FIRST_COL - 1),(EVALUATIONS.size)]
         @evaluations << Evaluation.new(
-          *evaluations,
           from: from_student,
-          to: to_student
+          to: to_student,
+          evaluations: evaluations
         )
       end
     end
   end
 
+  ### 他の人への評価を採点する
+  ### 0〜3で採点
   def mark_students_evaluation
     @students.each do |student|
       evaluations = @evaluations.select do |evaluation|
         evaluation.from_student == student
       end
 
+      # 評価に応じて点数を付ける
       if evaluations.empty? ||
          evaluations.map(&:not_exist_all_evaluation?).all?
         # ファイルが提出されていない
@@ -174,11 +195,14 @@ class Main
         # (欠席者への評価は除く)
         student.score = 2
       else
+        # 上記以外
         student.score = 3
       end
     end
   end
 
+  ### 各学生への評価が数字の使い回しかどうか調べる
+  ### 使い回しの場合はtrueを返す
   def all_evaluations_equal?(es)
     es.map(&:make_array_evaluation).uniq.size == 1
   end
