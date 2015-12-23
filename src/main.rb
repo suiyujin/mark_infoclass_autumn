@@ -36,25 +36,25 @@ class Main
 
   ### クラス全体の評価ファイルを書き出す
   def write_evaluations_in_class
-    # 書き込む対象のファイルを開く
+    # テンプレートファイルを読み込む
     evaluation_xlsx = RubyXL::Parser.parse("#{@reports_dir}/#{EVALUATION_DEFAULT_FILE_NAME}")
 
     @students.each do |student|
       # 書き込む場所を指定
-      row_num = evaluation_xlsx[EVALUATION_SHEET - 1].to_a.index { |row| row[EVALUATION_ID_COL - 1].value == student.id }
-      col_num = EVALUATION_FIRST_ROW - 1
+      row_index = evaluation_xlsx[EVALUATION_SHEET - 1].to_a.index { |row| row[EVALUATION_ID_COL - 1].value == student.id }
+      col_index = EVALUATION_FIRST_COL - 1
 
       # 同じグループの学生からの評価(総合点)を書き込む
       @evaluations.select { |e| e.to_student == student }.each do |evaluation|
         unless evaluation.sougouten == '#DIV/0!'
           # TODO: sougoutenと指定のものになってしまっているのを直す
-          evaluation_xlsx[EVALUATION_SHEET - 1][row_num][col_num].change_contents(evaluation.sougouten)
+          evaluation_xlsx[EVALUATION_SHEET - 1][row_index][col_index].change_contents(evaluation.sougouten)
         end
-        col_num += 1
+        col_index += 1
       end
 
       # 他の人への評価に対する採点を書き込む
-      evaluation_xlsx[EVALUATION_SHEET - 1][row_num][EVALUATION_FOR_OTHER_ROW - 1].change_contents(student.score)
+      evaluation_xlsx[EVALUATION_SHEET - 1][row_index][EVALUATION_FOR_OTHER_COL - 1].change_contents(student.score)
     end
 
     # ファイルを保存する
@@ -69,6 +69,7 @@ class Main
       # テンプレートファイルを読み込む
       list_xlsx = RubyXL::Parser.parse("#{@reports_dir}/#{LIST_DEFAULT_FILE_NAME}")
 
+      # グループの人からの評価を用意（順番をランダムにする）
       from_students = @students.select do |s|
         (s.group == student.group) && s.attend
       end.shuffle
