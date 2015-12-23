@@ -12,11 +12,7 @@ class MarkEvaluation
     @reports_dir = REPORTS_DIR.sub(/\/\z/, '')
 
     @student_dirs = Dir.glob("#{@reports_dir}/**")
-    @student_dirs.delete("#{@reports_dir}/reportlist.xls")
-    @student_dirs.delete_if { |dir| dir =~ /#{EVALUATION_DEFAULT_FILE_NAME}$/ }
-    @student_dirs.delete_if { |dir| dir =~ /evaluation_.+\.xlsx$/ }
-    @student_dirs.delete_if { |dir| dir =~ /#{LIST_DEFAULT_FILE_NAME}$/ }
-    @student_dirs.delete_if { |dir| dir =~ /lists$/ }
+    @student_dirs = @student_dirs.select { |dir| dir =~ /\A#{@reports_dir}\/\d{13}-\d{9}\z/ }
     puts "#{@student_dirs.size} studens."
 
     @students = []
