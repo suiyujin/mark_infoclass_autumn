@@ -12,6 +12,7 @@ class Main
 
     @student_dirs = Dir.glob("#{@reports_dir}/**")
     @student_dirs.delete("#{@reports_dir}/reportlist.xls")
+    @student_dirs.delete_if { |dir| dir =~ /evaluation_.+\.xlsx$/ }
     p "students: #{@student_dirs.size}"
 
     @students = []
@@ -48,8 +49,9 @@ class Main
       evaluation_xlsx[EVALUATION_SHEET - 1][row_num][EVALUATION_FOR_OTHER_ROW - 1].change_contents(student.score)
     end
 
-    evaluation_xlsx.write(@reports_dir.sub(/reports$/, 'evaluation.xlsx'))
-    puts "Write evaluation.xlsx"
+    write_file_name = "evaluation_#{Time.now.strftime('%Y%m%d%H%M%S')}.xlsx"
+    evaluation_xlsx.write("#{@reports_dir}/#{write_file_name}")
+    puts "Write #{write_file_name}"
   end
 
   def write_evaluations_for_student
@@ -104,7 +106,7 @@ class Main
 
   def make_students
     # 出席者を調べる
-    attendances = Dir.entries(@reports_dir) - ['.', '..', 'reportlist.xls']
+    attendances = @student_dirs.map { |student_dir| student_dir.sub(/\A#{@reports_dir}\/\d+-/, '') }
 
     first_student_num = @student_dirs.first.scan(/\/(\d+)$/).flatten.first
     xlsx_file = Roo::Excelx.new("#{@student_dirs.first}/#{FILE_PREFIX}#{first_student_num}.xlsx")
