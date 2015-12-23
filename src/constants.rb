@@ -1,3 +1,5 @@
+require 'yaml'
+
 module Constants
   ### configファイルを読み込んでチェックする
   def self.read_and_check_config_file(file_dir)
@@ -27,11 +29,12 @@ module Constants
         next
       end
       const_set(key.upcase, value)
-      p "set const: #{key.upcase} = #{value}"
+      p "set const: #{key.upcase} = #{value}" if $DEBUG
     end
   end
 
   file_dir = File.expand_path(File.dirname(__FILE__))
   config = read_and_check_config_file(file_dir)
   const_set_from_config(config)
+  puts "set all consts."
 end
