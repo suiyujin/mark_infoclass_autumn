@@ -58,7 +58,7 @@ class MarkEvaluation
     # ファイルを保存する
     write_file_name = "evaluation_#{Time.now.strftime('%Y%m%d%H%M%S')}.xlsx"
     evaluation_xlsx.write("#{@reports_dir}/#{write_file_name}")
-    puts "Write #{write_file_name}"
+    puts "Write #{@reports_dir}/#{write_file_name}"
   end
 
   ### 個人へのフィードバックファイルを書き出す
@@ -66,7 +66,7 @@ class MarkEvaluation
     # lists/ディレクトリがなければ作成する
     unless File.exist?("#{@reports_dir}/lists/")
       FileUtils.mkdir("#{@reports_dir}/lists/")
-      puts 'make directory: lists/'
+      puts "make directory: #{@reports_dir}lists/"
     end
 
     @students.each do |student|
@@ -104,7 +104,7 @@ class MarkEvaluation
 
       # ファイルを保存
       list_xlsx.write("#{@reports_dir}/lists/#{student.number}#{student.name}.xlsx")
-      puts "Write lists/#{student.number}#{student.name}.xlsx"
+      puts "Write #{@reports_dir}/lists/#{student.number}#{student.name}.xlsx"
     end
   end
 
@@ -159,7 +159,7 @@ class MarkEvaluation
                row[STUDENT_ID_COL - 1] == to_student.id &&
                row[STUDENT_NUMBER_COL - 1].to_s == to_student.number &&
                row[STUDENT_NAME_COL - 1] == to_student.name
-          raise StandardError, "Incorrect student!! (student: #{to_student.name})"
+          raise StandardError, "Incorrect evaluation!! (student: #{to_student.name})"
         end
 
         # 評価インスタンスを生成

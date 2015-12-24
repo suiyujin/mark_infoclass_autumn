@@ -1,5 +1,5 @@
 # 学生ごとのレポートディレクトリが入っているディレクトリ
-reports_dir: '/your/dir/of/reports/'
+reports_dir: '/path/to/reports/directory/'
 # レポートの接頭辞
 file_prefix: 'kadai00-'
 # クラス全体の評価ファイルのテンプレートファイル名
