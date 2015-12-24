@@ -1,9 +1,9 @@
 class Evaluation
   include Constants
 
-  attr_reader :from_student, :to_student
+  attr_reader :from_student, :to_student, :comment, :total
 
-  def initialize(from:, to:, evaluations:)
+  def initialize(from:, to:, evaluations:, comment:, total:)
     @from_student = from
     @to_student = to
 
@@ -16,6 +16,10 @@ class Evaluation
         define_method("#{evaluation}") { eval("@#{evaluation}") }
       end
     end
+
+    # コメントと総合点も作成
+    @comment = comment
+    @total = total
   end
 
   # 評価されている学生が出席しているか
@@ -25,12 +29,14 @@ class Evaluation
 
   # 評価に一つでも抜けがあるか
   def exist_nil_evaluation?
-    make_array_evaluation_with_comment.include?(nil)
+    evaluation = EVALUATION_INCLUDE_COMMENT ? make_array_evaluation_with_comment : make_array_evaluation
+    evaluation.include?(nil)
   end
 
   # 全ての評価が空か
   def not_exist_all_evaluation?
-    make_array_evaluation_with_comment.compact.empty?
+    evaluation = EVALUATION_INCLUDE_COMMENT ? make_array_evaluation_with_comment : make_array_evaluation
+    evaluation.compact.empty?
   end
 
   # 全て同じ数字で評価されているか
@@ -46,6 +52,6 @@ class Evaluation
   # コメント無し評価配列を生成
   def make_array_evaluation
     ary = EVALUATIONS.map { |evaluation| instance_variable_get("@#{evaluation}") }
-    ary[0, 5]
+    ary[0, STUDENT_EVALUATIONS_NUM]
   end
 end

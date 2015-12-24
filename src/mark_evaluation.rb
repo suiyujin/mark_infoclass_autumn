@@ -37,18 +37,18 @@ class MarkEvaluation
     # テンプレートファイルを読み込む
     evaluation_xlsx = RubyXL::Parser.parse("#{@reports_dir}/#{EVALUATION_DEFAULT_FILE_NAME}")
 
-    @students.each do |student|
-      # 書き込む場所を指定
-      row_index = evaluation_xlsx[EVALUATION_SHEET - 1].to_a.index { |row| row[EVALUATION_ID_COL - 1].value == student.id }
-      col_index = EVALUATION_FIRST_COL - 1
+    @students.each.with_index(EVALUATION_LIST_FIRST_ROW - 1) do |student, row_index|
+      # 学生情報を書き込む
+      evaluation_xlsx[EVALUATION_SHEET - 1][row_index][EVALUATION_GROUP_COL - 1].change_contents(student.group)
+      evaluation_xlsx[EVALUATION_SHEET - 1][row_index][EVALUATION_ID_COL - 1].change_contents(student.id)
+      evaluation_xlsx[EVALUATION_SHEET - 1][row_index][EVALUATION_NUMBER_COL - 1].change_contents(student.number)
+      evaluation_xlsx[EVALUATION_SHEET - 1][row_index][EVALUATION_NAME_COL - 1].change_contents(student.name)
 
       # 同じグループの学生からの評価(総合点)を書き込む
-      @evaluations.select { |e| e.to_student == student }.each do |evaluation|
-        unless evaluation.sougouten == '#DIV/0!'
-          # TODO: sougoutenと指定のものになってしまっているのを直す
-          evaluation_xlsx[EVALUATION_SHEET - 1][row_index][col_index].change_contents(evaluation.sougouten)
+      @evaluations.select { |e| e.to_student == student }.each.with_index(EVALUATION_FIRST_COL - 1) do |evaluation, col_index|
+        unless evaluation.total == '#DIV/0!'
+          evaluation_xlsx[EVALUATION_SHEET - 1][row_index][col_index].change_contents(evaluation.total)
         end
-        col_index += 1
       end
 
       # 他の人への評価に対する採点を書き込む
@@ -58,7 +58,7 @@ class MarkEvaluation
     # ファイルを保存する
     write_file_name = "evaluation_#{Time.now.strftime('%Y%m%d%H%M%S')}.xlsx"
     evaluation_xlsx.write("#{@reports_dir}/#{write_file_name}")
-    puts "Write #{write_file_name}"
+    puts "Write #{@reports_dir}/#{write_file_name}"
   end
 
   ### 個人へのフィードバックファイルを書き出す
@@ -66,7 +66,7 @@ class MarkEvaluation
     # lists/ディレクトリがなければ作成する
     unless File.exist?("#{@reports_dir}/lists/")
       FileUtils.mkdir("#{@reports_dir}/lists/")
-      puts 'make directory: lists/'
+      puts "make directory: #{@reports_dir}lists/"
     end
 
     @students.each do |student|
@@ -84,22 +84,27 @@ class MarkEvaluation
       # 評価を書き込む
       from_students.each.with_index do |from_student, i|
         row_index = LIST_FIRST_ROW - 1 + i
-        # 1列目に学生番号(S1,S2...)を書き込む
-        list_xlsx[LIST_SHEET - 1][row_index][0].change_contents("S#{i + 1}")
+        # 学生番号(S1,S2...)を書き込む
+        list_xlsx[LIST_SHEET - 1][row_index][LIST_FIRST_COL - 1].change_contents("S#{i + 1}")
 
         # 評価を取得
         evaluation = @evaluations.find do |e|
           (e.from_student == from_student) && (e.to_student == student)
         end
-        # 2列目以降に評価を書き込む
-        evaluation.make_array_evaluation_with_comment.each.with_index(1) do |value, col_index|
+        # 評価を書き込む
+        if EVALUATION_INCLUDE_COMMENT
+          evaluation_values = evaluation.make_array_evaluation_with_comment
+        else
+          evaluation_values = evaluation.make_array_evaluation
+        end
+        evaluation_values.each.with_index(LIST_EVALUATIONS_FIRST_COL - 1) do |value, col_index|
           list_xlsx[LIST_SHEET - 1][row_index][col_index].change_contents(value)
         end
       end
 
       # ファイルを保存
       list_xlsx.write("#{@reports_dir}/lists/#{student.number}#{student.name}.xlsx")
-      puts "Write lists/#{student.number}#{student.name}.xlsx"
+      puts "Write #{@reports_dir}/lists/#{student.number}#{student.name}.xlsx"
     end
   end
 
@@ -154,15 +159,19 @@ class MarkEvaluation
                row[STUDENT_ID_COL - 1] == to_student.id &&
                row[STUDENT_NUMBER_COL - 1].to_s == to_student.number &&
                row[STUDENT_NAME_COL - 1] == to_student.name
-          raise StandardError, "Incorrect student!! (student: #{to_student.name})"
+          raise StandardError, "Incorrect evaluation!! (student: #{to_student.name})"
         end
 
         # 評価インスタンスを生成
         evaluations = row[(STUDENT_EVALUATIONS_FIRST_COL - 1),(EVALUATIONS.size)]
+        comment = EVALUATION_INCLUDE_COMMENT ? row[STUDENT_COMMENT_COL - 1] : nil
+        total = row[STUDENT_TOTAL_COL - 1]
         @evaluations << Evaluation.new(
           from: from_student,
           to: to_student,
-          evaluations: evaluations
+          evaluations: evaluations,
+          comment: comment,
+          total: total
         )
       end
     end

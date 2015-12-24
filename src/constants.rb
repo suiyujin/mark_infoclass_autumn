@@ -7,7 +7,7 @@ module Constants
 
     config.each do |key, value|
       raise StandardError, "#{key} is invalid." if value == ''
-      unless value.is_a?(Enumerable)
+      unless value.is_a?(Enumerable) || value.instance_of?(TrueClass) || value.instance_of?(FalseClass)
         raise StandardError, "#{key} is invalid." unless value.instance_of?(String)
       end
     end

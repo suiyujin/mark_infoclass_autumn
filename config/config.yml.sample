@@ -1,11 +1,11 @@
 # 学生ごとのレポートディレクトリが入っているディレクトリ
-reports_dir: '/your/dir/of/reports/'
+reports_dir: '/path/to/reports/directory/'
 # レポートの接頭辞
 file_prefix: 'kadai00-'
 # クラス全体の評価ファイルのテンプレートファイル名
-evaluation_default_file_name: 'evaluation_default.xlsx'
+evaluation_default_file_name: 'evaluation_sample.xlsx'
 # 個人への評価ファイルのテンプレートファイル名
-list_default_file_name: 'list_default.xlsx'
+list_default_file_name: 'list_sample.xlsx'
 # 数値関係
 number:
   # 学生の評価ファイル(read)
@@ -16,20 +16,29 @@ number:
   student_number_col: 3             # 「学籍番号」の列番号
   student_name_col: 4               # 「氏名」の列番号
   student_evaluations_first_col: 6  # 1つ目の評価の列番号
+  student_evaluations_num: 5        # 評価指標の数(コメント、総合点は除く)
+  student_comment_col: 11           # コメントの列番号
+  student_total_col: 12             # 総合点の列番号
   # クラス全体の評価ファイル(write)
   evaluation_sheet: 1               # シート番号
+  evaluation_list_first_row: 3      # 1人目の学生の行番号
+  evaluation_group_col: 1           # 「グループ」の列番号
   evaluation_id_col: 2              # 「No.」の列番号
+  evaluation_number_col: 3          # 「学籍番号」の列番号
+  evaluation_name_col: 4            # 「氏名」の列番号
   evaluation_first_col: 5           # 1人目の評価(S1)の列番号
   evaluation_for_other_col: 12      # 「他人へ採点」の列番号
   # 個人への評価ファイル(write)
   list_sheet: 1                     # シート番号
   list_first_row: 14                # 1人目の評価(S1)の行番号
-# 評価一覧
+  list_first_col: 1                 # 学生番号(S1,S2...)を書く列番号
+  list_evaluations_first_col: 2     # 1つ目の評価を書く列番号
+# 評価指標一覧
+# コメント・総合点は除く
 evaluations:
   - 'naiyo'
   - 'design'
   - 'sousasei'
   - 'repeatsei'
   - 'doryokudo'
-  - 'comment'
-  - 'sougouten'
+evaluation_include_comment: true    # 評価にコメントを含めるか
