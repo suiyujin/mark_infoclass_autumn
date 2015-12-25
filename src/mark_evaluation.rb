@@ -141,13 +141,12 @@ class MarkEvaluation
       to_students = @students.select { |student| student.group == from_student.group }
       to_students.delete(from_student)
 
-      # 正しいファイルを提出しているかチェック
-      # TODO: 正しいファイル(list.xlsx)と比較するように修正
-      unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(STUDENT_SHEET - 1).row(1)).none?
-        @incorrect_students << from_student
-        p "WARN: Incorrect file! - #{FILE_PREFIX}#{dir_student_num}.xlsx"
-        next
-      end
+      # 正しいファイルを提出しているかチェックする場合
+      # unless (['記入者', '採点項目', '点数'] - xlsx_file.sheet(STUDENT_SHEET - 1).row(1)).none?
+      #   @incorrect_students << from_student
+      #   p "WARN: Incorrect file! - #{FILE_PREFIX}#{dir_student_num}.xlsx"
+      #   next
+      # end
 
       # ファイルから他のメンバーへの評価を取得
       to_students.each do |to_student|
