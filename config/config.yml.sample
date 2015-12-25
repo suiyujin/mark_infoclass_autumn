@@ -8,7 +8,7 @@ evaluation_default_file_name: 'evaluation_sample.xlsx'
 list_default_file_name: 'list_sample.xlsx'
 # 数値関係
 number:
-  # 学生の評価ファイル(read)
+  # 学生の提出ファイル(read)
   student_sheet: 1                  # シート番号
   student_list_first_row: 14        # 1人目の学生の行番号
   student_group_col: 1              # 「グループ」の列番号(例: A => 1)
@@ -31,8 +31,8 @@ number:
   # 個人への評価ファイル(write)
   list_sheet: 1                     # シート番号
   list_first_row: 14                # 1人目の評価(S1)の行番号
-  list_first_col: 1                 # 学生番号(S1,S2...)を書く列番号
-  list_evaluations_first_col: 2     # 1つ目の評価を書く列番号
+  list_first_col: 1                 # 学生番号(S1,S2...)の列番号
+  list_evaluations_first_col: 2     # 1つ目の評価の列番号
 # 評価指標一覧
 # コメント・総合点は除く
 evaluations:
