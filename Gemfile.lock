@@ -1,22 +1,9 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    byebug (8.2.1)
-    coderay (1.1.0)
-    method_source (0.8.2)
     mini_portile2 (2.0.0)
     nokogiri (1.6.7.1)
       mini_portile2 (~> 2.0.0.rc2)
-    pry (0.10.3)
-      coderay (~> 1.1.0)
-      method_source (~> 0.8.1)
-      slop (~> 3.4)
-    pry-byebug (3.3.0)
-      byebug (~> 8.0)
-      pry (~> 0.10)
-    pry-doc (0.8.0)
-      pry (~> 0.9)
-      yard (~> 0.8)
     roo (2.3.0)
       nokogiri (~> 1)
       rubyzip (~> 1.1, < 2.0.0)
@@ -24,16 +11,11 @@ GEM
       nokogiri (>= 1.4.4)
       rubyzip (>= 1.1.6)
     rubyzip (1.1.7)
-    slop (3.6.0)
-    yard (0.8.7.6)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  pry
-  pry-byebug
-  pry-doc
   roo
   rubyXL
 

@@ -1,8 +1,4 @@
-source "https://rubygems.org"
-
-gem 'pry'
-gem 'pry-doc'
-gem 'pry-byebug'
+source 'https://rubygems.org'
 
 gem 'roo'
 gem 'rubyXL'
