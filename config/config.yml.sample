@@ -3,9 +3,20 @@ reports_dir: '/path/to/reports/directory/'
 # レポートの接頭辞
 file_prefix: 'kadai00-'
 # クラス全体の評価ファイルのテンプレートファイル名
+# reports_dirに配置する
 evaluation_default_file_name: 'evaluation_sample.xlsx'
 # 個人への評価ファイルのテンプレートファイル名
+# reports_dirに配置する
 list_default_file_name: 'list_sample.xlsx'
+# 評価指標一覧
+# コメント・総合点は除く
+evaluations:
+  - 'naiyo'
+  - 'design'
+  - 'sousasei'
+  - 'repeatsei'
+  - 'doryokudo'
+evaluation_include_comment: true    # 評価にコメントを含めるか
 # 数値関係
 number:
   # 学生の提出ファイル(read)
@@ -33,12 +44,3 @@ number:
   list_first_row: 14                # 1人目の評価(S1)の行番号
   list_first_col: 1                 # 学生番号(S1,S2...)の列番号
   list_evaluations_first_col: 2     # 1つ目の評価の列番号
-# 評価指標一覧
-# コメント・総合点は除く
-evaluations:
-  - 'naiyo'
-  - 'design'
-  - 'sousasei'
-  - 'repeatsei'
-  - 'doryokudo'
-evaluation_include_comment: true    # 評価にコメントを含めるか
