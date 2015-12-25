@@ -1,18 +1,18 @@
-## Usage
-Install Ruby and bundler (e.g. gem install bundler)
+## 使用方法
+Ruby, bundlerをインストール
 
-Install dependent libraries:
+依存ライブラリをインストール:
 ```shell
 bundle install --path vendor/bundle
-`````
+```
 
-Make config file:
+設定ファイルを作成:
 ```shell
 cp config/config.yml.sample config/config.yml
 ```
-then, edit `config.yml` in `config/` directory
+その後、`config/`ディレクトリ内の`config.yml`を編集
 
-Start execution:
+処理を開始:
 ```shell
 bundle exec ruby src/main.rb
-`````
+```
